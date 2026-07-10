@@ -1,0 +1,59 @@
+name: Disease Pipeline Runner
+
+on:
+  workflow_dispatch: # Allows you to trigger this manually from the GitHub UI
+  # schedule:
+  #   - cron: '0 0 * * *' # Uncomment to automatically run daily
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Crucial permission: allows bot to push cache/outputs back
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Universal Pipeline
+        env:
+          # Pulls the secrets from your GitHub Repository settings
+          GEMINI_API_KEYS: ${{ secrets.GEMINI_API_KEYS }}
+          ZIP_PASSWORD: ${{ secrets.ZIP_PASSWORD }}
+        run: python main.py
+
+      - name: Commit and Push Checkpoints / Results
+        if: always() # Ensures it commits the state even if the run hit an error threshold
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # Dynamic guard: Ensure output/local_responses/ is ignored by Git
+          if [ ! -f .gitignore ] || ! grep -q "output/local_responses/" .gitignore; then
+            echo "output/local_responses/" >> .gitignore
+          fi
+          
+          # Stage the gitignore and only the filtered output files
+          git add .gitignore
+          if [ -d output ]; then
+            git add output/
+          fi
+          
+          # Only commit if changes exist (prevents action failing if 0 files changed)
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "Auto-update pipeline checkpoints and outputs [skip ci]"
+            git push
+          else
+            echo "No changes to commit. Output directory is identical."
+          fi
