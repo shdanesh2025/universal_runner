@@ -1,0 +1,13 @@
+{
+  "completed_ids": [
+    "article_46"
+  ],
+  "failed_ids": [],
+  "completed_steps": {
+    "article_46": [
+      "step_1",
+      "step_2"
+    ]
+  },
+  "errors": {}
+}
