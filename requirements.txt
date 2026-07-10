@@ -1,0 +1,10 @@
+google-genai<2.0
+pydantic<=2.12.3
+pyyaml
+pytz
+tqdm
+pydub
+httpx[socks]
+jsonschema
+python-dotenv
+pyzipper
